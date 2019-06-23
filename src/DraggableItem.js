@@ -46,7 +46,7 @@ export default class DraggableItem extends Component {
                     key={item.id}
                     onLongPress={onLongPress}
                     style={styles.item}
-                    delayLongPress={200}
+                    delayLongPress={100}
                 >
                     <Text style={styles.itemTitle}>{item.id}</Text>
                 </TouchableOpacity>
