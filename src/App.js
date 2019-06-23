@@ -37,11 +37,11 @@ export default class App extends Component {
             },
             {
                 id: '5',
-                columnNumber: 1,
+                columnNumber: 2,
             },
             {
                 id: '6',
-                columnNumber: 1,
+                columnNumber: 2,
             },
             {
                 id: '7',
@@ -55,69 +55,110 @@ export default class App extends Component {
                 id: '9',
                 columnNumber: 2,
             },
-            {
-                id: '10',
-                columnNumber: 2,
-            },
-            {
-                id: '11',
-                columnNumber: 2,
-            },
-            {
-                id: '12',
-                columnNumber: 2,
-            },
         ],
-        movingCard: {},
+        movingFrom: null,
+        movingTo: null,
+        switchedColumn: false,
+        scrollEnabled: true,
     };
 
     yPositions=[];
+    c1Length = 5;
 
     _onLayout = (index, y)=>this.yPositions[index] = y;
-    _onItemLongPress = from=>this.setState({movingCard: {from}});
+
+    _onItemLongPress = movingFrom=>this.setState({scrollEnabled: false}, ()=> {
+        this.setState({movingFrom, movingTo: movingFrom});
+    });
+
+
     _onDraggableMove = (x, y)=>{
-        if(this.state.movingCard.from+Math.round(y/84)===this.state.movingCard.to) return;
-        this.setState({
-            movingCard: {
-                ...this.state.movingCard,
-                to: this.state.movingCard.from+Math.round(y/84)
+        let { movingFrom, items } = this.state;
+        let newSwitchedColumn;
+        let newMovingTo = Math.round(y / 84)+movingFrom;
+        const isColumn1 = items[movingFrom].columnNumber === 1;
+        if(isColumn1 && x>100 || !isColumn1 && x<-100){
+            newSwitchedColumn = true;
+            if(isColumn1 && x>100){
+                if(this.c1Length===items.length) newMovingTo = this.c1Length-1;
+                else newMovingTo += this.c1Length-1;
+            }else{
+                if(this.c1Length === 0) newMovingTo = 0;
+                else newMovingTo += -this.c1Length;
             }
+            console.log('newMovingTo: ', newMovingTo);
+            if(newMovingTo>items.length) newMovingTo = items.length-1;
+        }else {
+            if (isColumn1) {
+                if(newMovingTo >= this.c1Length) newMovingTo = this.c1Length - 1;
+            } else if(newMovingTo<this.c1Length){
+                newMovingTo = this.c1Length;
+            }
+        }
+        // console.log('newMovingTo: ', newMovingTo);
+        console.log('this.c1Length: ', this.c1Length);
+        this.setState({
+            movingTo: newMovingTo<0 ? 0 : newMovingTo,
+            switchedColumn: newSwitchedColumn,
         });
     };
 
     _onDraggableRelease = ()=>{
-        let { items, movingCard } = this.state;
-        const item = items[movingCard.from];
-        // const upDownMoves = Math.round(y/84);
-        // if(upDownMoves<1) return;
-        // let targetIndex = movingCard.from+upDownMoves;
-        items = items.filter((_, i)=>i!==movingCard.from);
-        items.splice(movingCard.to, 0, item);
-        // console.log('movingCard: ', movingCard);
-        // console.log('items: ', items);
+        let { items, movingFrom, movingTo, switchedColumn } = this.state;
+        // console.log('switchedColumn: ', switchedColumn);
+        items.splice(movingTo, 0, items.splice(movingFrom, 1)[0]);
 
-        this.setState({items, movingCard: {}});
+        if(switchedColumn){
+            if(items[movingTo].columnNumber===1){
+                items[movingTo].columnNumber = 2;
+                this.c1Length--
+            }else{
+                items[movingTo].columnNumber = 1;
+                this.c1Length++
+            }
+        }
+        this.setState({
+            items,
+            scrollEnabled: true,
+            movingFrom: null,
+            movingTo: null,
+            switchedColumn: false,
+        });
     };
 
     _renderItems = columnNumber=>{
-        const { items, movingCard} = this.state;
+        const { items, movingFrom, movingTo, switchedColumn} = this.state;
         return items.map((item, index)=>{
             if(item.columnNumber === columnNumber){
                 let moveTo;
-                if(movingCard.to>-1 && movingCard.from!==index){
-                    // console.log('MAIN');
-                    if(movingCard.to<=index && movingCard.from>index){
+                let isDragging = movingFrom===index;
+
+                if(movingTo>-1 && !isDragging){
+                    if(movingTo<=index && movingFrom>index){
                         // console.log('IF');
                         moveTo = 'bottom';
-                    }else if(movingCard.to>=index && movingCard.from<index){
+                    }else if(movingTo>=index && movingFrom<index){
                         // console.log('ELSE');
                         moveTo = 'top';
                     }
                 }
 
+                if(switchedColumn){
+                    if(items[movingFrom].columnNumber===1){
+                        if(index>=this.c1Length){
+                            moveTo = null;
+                        }
+                    }else{
+                        if(index>=this.c1Length){
+                            moveTo = null;
+                        }
+                    }
+                }
+
                 // console.log('item.id: ', item.id);
-                console.log('movingCard: ', movingCard);
-                console.log('moveTo: ', moveTo);
+                // console.log('movingCard: ', movingCard);
+                // console.log('FROM: ', from);
+                // console.log('INDEX: ', index);
                 return(
                     <DraggableItem
                         key={item.id}
@@ -125,7 +166,7 @@ export default class App extends Component {
                         onLongPress={()=>this._onItemLongPress(index)}
                         onLayout={({nativeEvent:{layout}})=>this._onLayout(index, layout.y)}
                         onRelease={this._onDraggableRelease}
-                        isDragging={movingCard.from===index}
+                        isDragging={isDragging}
                         moveTo={moveTo}
                         onMove={this._onDraggableMove}
                     />
@@ -136,15 +177,12 @@ export default class App extends Component {
 
 
     render() {
-        const { items, movingCard} = this.state;
-        // console.log('column1: ', column1);
-        // console.log('movingCard: ', movingCard);
-        // console.log('this.yPositions: ', this.yPositions);
-
+        const {scrollEnabled, items} = this.state;
+        console.log('ITEMS: ', items);
         return (
             <ScrollView
                 style={styles.container}
-                scrollEnabled={!movingCard.from}
+                scrollEnabled={scrollEnabled}
             >
                 <View style={styles.columns}>
                     <View style={styles.column}>
@@ -162,10 +200,11 @@ export default class App extends Component {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F5FCFF',
+        backgroundColor: '#aaa',
     },
     columns:{
         flex: 1,
+        minHeight: HEIGHT,
         flexDirection: 'row',
     },
     column:{
