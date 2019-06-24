@@ -72,8 +72,8 @@ export default class App extends Component {
 
 
     _onDraggableMove = (x, y)=>{
-        console.log('y: ', y);
-        console.log('HEIGHT: ', HEIGHT);
+        // console.log('y: ', y);
+        // console.log('HEIGHT: ', HEIGHT);
         // this._scrollview.scrollTo({y});
 
         let { movingFrom, items } = this.state;
@@ -81,14 +81,15 @@ export default class App extends Component {
         let newMovingTo = Math.round(y / 84)+movingFrom;
         const isColumn1 = items[movingFrom].columnNumber === 1;
         if(isColumn1 && x>SWITCH_COLUMN_SPOT || !isColumn1 && x<-SWITCH_COLUMN_SPOT){
-            if(isColumn1 && x>SWITCH_COLUMN_SPOT){
+            if(isColumn1){
                 switchingTo = 2;
                 if(this.c1Length===items.length) newMovingTo = this.c1Length-1;
                 else newMovingTo += this.c1Length-1;
             }else{
                 switchingTo = 1;
-                if(this.c1Length === 0) newMovingTo = 0;
+                if(newMovingTo>=this.c1Length) newMovingTo = this.c1Length;
                 else newMovingTo += -this.c1Length;
+
             }
             // console.log('newMovingTo: ', newMovingTo);
             if(newMovingTo>=items.length) newMovingTo = items.length-1;
@@ -99,7 +100,8 @@ export default class App extends Component {
                 newMovingTo = this.c1Length;
             }
         }
-        // console.log('newMovingTo: ', newMovingTo);
+        // console.log('MOVING_FROM: ', movingFrom);
+        // console.log('NEW_MOVING_TO: ', newMovingTo);
         // console.log('this.c1Length: ', this.c1Length);
         this.setState({
             movingTo: newMovingTo<0 ? 0 : newMovingTo,
