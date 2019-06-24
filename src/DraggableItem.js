@@ -7,6 +7,7 @@ import {
     View,
     StyleSheet,
     Dimensions,
+    Easing,
 } from 'react-native';
 import * as Animatable from 'react-native-animatable';
 
@@ -14,39 +15,78 @@ const WIDTH = Dimensions.get('window').width;
 const HEIGHT = Dimensions.get('window').height;
 
 export default class DraggableItem extends Component {
-    position = new Animated.ValueXY();
+    animatedItem = new Animated.Value(0);
+    position = new Animated.ValueXY(0);
     PanResponder = PanResponder.create({
         onMoveShouldSetPanResponderCapture: () => this.props.isDragging,
         onPanResponderMove: (_, {dx,dy}) =>{
             this.props.onMove(dx,dy);
             this.position.setValue({ x: dx, y: dy })
         },
-        onPanResponderRelease: (_, {dx,dy}) => {
+        onPanResponderRelease: () => {
             this.props.onRelease();
             this.position.setValue({ x: 0, y: 0 });
         },
     });
 
+
+    _onMoveTo = y=>{
+        if(this.props.dontAnimate) this.position.setValue({ x: 0, y });
+        else Animated.timing(this.position, {
+            toValue: { y, x: 0},
+            easing: Easing.in,
+            duration: 200,
+        }).start()
+    };
+
+    componentDidUpdate(prevProps){
+        if(!prevProps.isDragging && this.props.isDragging){
+            Animated.spring(this.animatedItem,{toValue: 1}).start()
+        }
+
+        if(prevProps.moveTo !== this.props.moveTo){
+            switch (this.props.moveTo){
+                case 'top':
+                    this._onMoveTo(-84);
+                    break;
+                case 'bottom':
+                    this._onMoveTo(84);
+                    break;
+                default:
+                    this._onMoveTo(0);
+
+            }
+        }
+    }
+
     render() {
-        const { item, onLongPress, isDragging, onLayout, moveTo } = this.props;
+        const { item, onLongPress, isDragging } = this.props;
         return (
             <Animated.View
                 {...this.PanResponder.panHandlers}
                 style={[
                     ...this.position.getTranslateTransform(),
                     styles.itemContainer,
-                    isDragging && styles.draggingItem,
-                    moveTo==='top' &&{bottom: 84},
-                    moveTo==='bottom' &&{top: 84},
+                    isDragging && {
+                        zIndex: 1000,
+                        elevation: 50,
+                        transform:[
+                            {
+                                rotate: this.animatedItem.interpolate({
+                                    inputRange: [0, 1],
+                                    outputRange: ['0deg', '6deg']
+                                })
+                            }
+                        ]
+                    },
                 ]}
-                onLayout={onLayout}
             >
                 <TouchableOpacity
                     activeOpacity={.8}
-                    key={item.id}
                     onLongPress={onLongPress}
                     style={styles.item}
-                    delayLongPress={100}
+                    delayLongPress={150}
+                    onPress={()=>alert(item.id)}
                 >
                     <Text style={styles.itemTitle}>{item.id}</Text>
                 </TouchableOpacity>
@@ -59,31 +99,21 @@ const styles = StyleSheet.create({
     itemContainer:{
         height: 80,
         width: (WIDTH/2)-5,
-        backgroundColor: '#2b2b2b',
         marginVertical: 2,
         alignSelf: 'center',
         zIndex: -1000,
-        borderRadius: 5,
     },
     item:{
-        width: '100%',
-        height: '100%',
+        flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-    },
-    itemPlaceholder:{
-        backgroundColor: '#eee',
+        backgroundColor: '#005b96',
     },
     itemTitle:{
         fontSize: 20,
         fontWeight: '600',
-        color: '#fff'
-    },
-    draggingItem:{
-        zIndex: 1000,
-        // height: 84,
-        // width: (WIDTH/2)-2,
-        // transform: [{ rotate: '2deg' }],
-        backgroundColor: '#161616',
+        color: '#eee',
+        width: '100%',
+        textAlign: 'center',
     },
 });
