@@ -22,14 +22,12 @@ export default class DraggableItem extends Component {
         // is set to isDragging by long press
         onMoveShouldSetPanResponderCapture: () => this.props.isDragging,
         onPanResponderMove: (_, {dx, dy, moveY}) =>{
-
-            console.log('moveY: ', moveY);
-            console.log('!this._scrollInterval: ', !this._scrollInterval);
+            console.log('this._scrollInterval: ', this._scrollInterval);
 
             if(moveY>HEIGHT-100 && !this._scrollInterval){
-                this._scrollSmoothly(dx, dy, 10)
+                this._scrollSmoothly(dx, dy, 5)
             }else if(moveY<100 && !this._scrollInterval){
-                this._scrollSmoothly(dx, dy, -10);
+                this._scrollSmoothly(dx, dy, -5);
             }else{
                 this._clearScrollInterval();
                 this._position.setValue({ x: dx, y: dy+this._movedYByScroll });
@@ -46,16 +44,21 @@ export default class DraggableItem extends Component {
     });
 
     _scrollSmoothly = (dx, dy, direction) =>{
+        const { scrollViewYPosition, srollViewLayoutHeight, scrollViewContentHeight, onMove} = this.props;
         this._movedYByScroll = direction;
         this._scrollInterval = setInterval(()=>{
             this._movedYByScroll += direction;
-            if(this.props.cantScroll || (direction<0 && (this.props.scrollViewYPosition+this._movedYByScroll)===0)){
+            if(
+                (direction>0 && (scrollViewYPosition+srollViewLayoutHeight+this._movedYByScroll)>=scrollViewContentHeight)
+                ||
+                (direction<0 && (scrollViewYPosition+this._movedYByScroll)<1)
+            ){
                 this._clearScrollInterval();
                 return;
             }
             this._position.setValue({x: dx, y: dy+this._movedYByScroll});
-            this.props.onMove(dx,dy+this._movedYByScroll, this._movedYByScroll)
-        }, 100)
+            onMove(dx,dy+this._movedYByScroll, this._movedYByScroll)
+        }, 50)
     };
 
     _clearScrollInterval = ()=>{

@@ -319,7 +319,8 @@ export default class App extends Component {
                         dontAnimate={!movingFrom||justSwitched}
                         onItemLayout={({nativeEvent:{layout:{height}}})=>this._onItemLayout(height, index)}
                         scrollViewYPosition={this._scrollViewYPosition}
-                        cantScroll={this._scrollViewYPosition+this._scrollViewLayoutHeight >= this._scrollViewContentHeight}
+                        srollViewLayoutHeight={this._scrollViewLayoutHeight}
+                        scrollViewContentHeight={this._scrollViewContentHeight}
                     />
                 )
             }

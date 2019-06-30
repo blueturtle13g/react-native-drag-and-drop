@@ -1,5 +1,5 @@
 import React, { Component } from 'react'
-import { View, TouchableOpacity, Text, ScrollView } from 'react-native'
+import { View, TouchableOpacity, Text } from 'react-native'
 import DraggableFlatList from 'react-native-draggable-flatlist'
 
 class Example extends Component {
@@ -34,66 +34,17 @@ class Example extends Component {
     }
 
     render() {
-        console.log('render');
-
-        return(
-            <ScrollView
-                onLayout={({nativeEvent:{layout:{height, y}}})=>{
-                    console.log('layout height: ', height);
-                    console.log('y: ', y);
-                }}
-                onContentSizeChange={(w,h)=>{
-                    console.log('content height: ', h);
-
-                }}
-            >
-                <Text>something</Text>
-                <Text>something</Text>
-                <Text>something</Text>
-                <Text>something</Text>
-                <Text>something</Text>
-                <Text>something</Text>
-                <Text>something</Text>
-                <Text>something</Text>
-                <Text>something</Text>
-                <Text>something</Text>
-                <Text>something</Text>
-                <Text>something</Text>
-                <Text>something</Text>
-                <Text>something</Text>
-                <Text>something</Text>
-                <Text>something</Text>
-                <Text>something</Text>
-                <Text>something</Text>
-                <Text>something</Text>
-                <Text>something</Text>
-                <Text>something</Text>
-                <Text>something</Text>
-                <Text>something</Text>
-                <Text>something</Text>
-                <Text>something</Text>
-                <Text>something</Text>
-                <Text>something</Text>
-                <Text>something</Text>
-                <Text>something</Text>
-                <Text>something</Text>
-                <Text>something</Text>
-                <Text>something</Text>
-                <Text>something</Text>
-                <Text>something</Text>
-            </ScrollView>
+        return (
+            <View style={{ flex: 1 }}>
+                <DraggableFlatList
+                    data={this.state.data}
+                    renderItem={this.renderItem}
+                    keyExtractor={(item, index) => `draggable-item-${item.key}`}
+                    scrollPercent={5}
+                    onMoveEnd={({ data }) => this.setState({ data })}
+                />
+            </View>
         )
-        // return (
-        //     <View style={{ flex: 1 }}>
-        //         <DraggableFlatList
-        //             data={this.state.data}
-        //             renderItem={this.renderItem}
-        //             keyExtractor={(item, index) => `draggable-item-${item.key}`}
-        //             scrollPercent={5}
-        //             onMoveEnd={({ data }) => this.setState({ data })}
-        //         />
-        //     </View>
-        // )
     }
 }
 
