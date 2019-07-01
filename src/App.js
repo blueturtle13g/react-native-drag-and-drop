@@ -106,7 +106,7 @@ export default class App extends Component {
     // as item is dragging we get its coordinates
     _onDraggableMove = (x, y, movedYByScroll)=>{
         if(movedYByScroll !== 0){
-            this._scrollViewRef.scrollTo({x: 0, y: this._scrollViewYPosition+movedYByScroll});
+            this._scrollViewRef.scrollTo({x: 0, y: this._scrollViewYPosition+movedYByScroll, animated: true});
         }
 
         const { movingFrom, items } = this.state;
@@ -251,8 +251,7 @@ export default class App extends Component {
         });
     };
 
-    _onDraggableRelease = movedYByScroll=>{
-        this._scrollViewYPosition += movedYByScroll;
+    _onDraggableRelease = ()=>{
         const { items, movingFrom, movingTo, switchingTo } = this.state;
         let newItems = JSON.parse(JSON.stringify(items));
         // as user releases the dragging item, we move it to its new index(movingTo)

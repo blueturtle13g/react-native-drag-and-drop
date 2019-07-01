@@ -13,58 +13,47 @@ const WIDTH = Dimensions.get('window').width;
 const HEIGHT = Dimensions.get('window').height;
 
 export default class DraggableItem extends Component {
-    _scrollInterval = null;
     _animatedItem = new Animated.Value(0);
     _position = new Animated.ValueXY(0);
-    _movedYByScroll = 0;
+    _movedYBy = 0;
     PanResponder = PanResponder.create({
         // we allow pan responder to capture the finger movement just if the item
         // is set to isDragging by long press
         onMoveShouldSetPanResponderCapture: () => this.props.isDragging,
         onPanResponderMove: (_, {dx, dy, moveY}) =>{
-            console.log('this._scrollInterval: ', this._scrollInterval);
 
-            if(moveY>HEIGHT-100 && !this._scrollInterval){
-                this._scrollSmoothly(dx, dy, 5)
-            }else if(moveY<100 && !this._scrollInterval){
-                this._scrollSmoothly(dx, dy, -5);
+            console.log('moveY: ', moveY);
+
+
+
+            if(moveY>HEIGHT-100){
+                this._movedYBy = 0;
+                while(moveY>HEIGHT-100){
+                    moveY -= 300;
+                    this._movedYBy += 300
+                }
+                this.props.onMove(dx,dy+this._movedYBy, this._movedYBy);
+                this._position.setValue({x: dx, y: dy+this._movedYBy});
+            }else if(moveY<100){
+                this._movedYBy = 0;
+                while(moveY<100){
+                    moveY += 300;
+                    this._movedYBy += 300
+                }
+                this.props.onMove(dx,dy-this._movedYBy, this._movedYBy);
+                this._position.setValue({x: dx, y: dy-this._movedYBy});
             }else{
-                this._clearScrollInterval();
-                this._position.setValue({ x: dx, y: dy+this._movedYByScroll });
-                this.props.onMove(dx, dy+this._movedYByScroll, 0);
+                this._position.setValue({x: dx, y: dy+this._movedYBy});
+                this.props.onMove(dx, dy+this._movedYBy, 0);
             }
         },
         onPanResponderRelease: () => {
             // then reset to the initial _position
             this._position.setValue({ x: 0, y: 0 });
-            this._clearScrollInterval();
-            this.props.onRelease(this._movedYByScroll);
-            this._movedYByScroll = 0;
+            this._movedYBy = 0;
+            this.props.onRelease();
         },
     });
-
-    _scrollSmoothly = (dx, dy, direction) =>{
-        const { scrollViewYPosition, srollViewLayoutHeight, scrollViewContentHeight, onMove} = this.props;
-        this._movedYByScroll = direction;
-        this._scrollInterval = setInterval(()=>{
-            this._movedYByScroll += direction;
-            if(
-                (direction>0 && (scrollViewYPosition+srollViewLayoutHeight+this._movedYByScroll)>=scrollViewContentHeight)
-                ||
-                (direction<0 && (scrollViewYPosition+this._movedYByScroll)<1)
-            ){
-                this._clearScrollInterval();
-                return;
-            }
-            this._position.setValue({x: dx, y: dy+this._movedYByScroll});
-            onMove(dx,dy+this._movedYByScroll, this._movedYByScroll)
-        }, 50)
-    };
-
-    _clearScrollInterval = ()=>{
-        clearInterval(this._scrollInterval);
-        this._scrollInterval= null;
-    };
 
     _onMoveTo = y=>{
         // if dragging item has changed its column we don't animate(performance)!
