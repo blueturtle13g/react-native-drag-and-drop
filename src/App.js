@@ -15,9 +15,10 @@ const ITEM_MARGIN = 4;
 
 export default class App extends Component {
     // tracks the length of column1
-    c1Length = 5;
+    _c1Length = 5;
     // tracks the height of each item
-    itemHeights = [];
+    _itemHeights = [];
+    _scrollViewYPosition = 0;
     state={
         // from beginning until the end it's important to keep the items of
         // column1 at the beginning of the array and not mix up two columns items
@@ -103,8 +104,12 @@ export default class App extends Component {
     _onItemLongPress = movingFrom=>this.setState({movingFrom, movingTo: movingFrom});
 
     // as item is dragging we get its coordinates
-    _onDraggableMove = (x, y)=>{
-        let { movingFrom, items } = this.state;
+    _onDraggableMove = (x, y, movedYByScroll)=>{
+        if(movedYByScroll !== 0){
+            this._scrollViewRef.scrollTo({x: 0, y: this._scrollViewYPosition+movedYByScroll, animated: true});
+        }
+
+        const { movingFrom, items } = this.state;
         let switchingTo = null;
         // the column that our dragging item lives
         const initialColumnIs1 = items[movingFrom].columnNumber === 1;
@@ -118,24 +123,26 @@ export default class App extends Component {
                 switchingTo = 2;
                 // if item move to column2 we set the next MovingTo equal to the first item
                 // at column2 that equals to the length of column1 -1
-                nextMovingTo = this.c1Length-1;
+                nextMovingTo = this._c1Length-1;
                 // if the second column is empty we let nextMovingTo to remain
                 // as the first item in column2, otherwise we should continue
-                if(this.c1Length!==items.length){
+                if(this._c1Length!==items.length){
                     // in order to transfer the coordinates of the dragging item
                     // to column2 we need to loop through the previous items
                     // of the dragging item and get their heights and then
                     // add to y
                     for(let i=0; i<movingFrom; i++){
-                        y += this.itemHeights[i];
+                        y += this._itemHeights[i];
                     }
+
+                    // this._scrollDownSmoothly(y);
 
                     // then we subtract y from the height of items in column2
                     // until our y gets to 0
                     let counter = 0;
                     while(y!==0){
                         // we get the height of item in column2 from 0 and go up
-                        const targetItemHeight = this.itemHeights[this.c1Length+counter];
+                        const targetItemHeight = this._itemHeights[this._c1Length+counter];
                         // if y exceeds this item's height
                         if(y > targetItemHeight){
                             // we increment the nextMovingTo
@@ -163,18 +170,18 @@ export default class App extends Component {
                 nextMovingTo = 0;
                 // if the column1 is empty we let nextMovingTo to remain
                 // as the first item in column1, otherwise we should continue
-                if(this.c1Length !== 0){
+                if(this._c1Length !== 0){
                     // in order to transfer the coordinates of the dragging item
                     // to column1 we need to loop through the previous items
                     // of the dragging item in column2 and get their heights and then
                     // add to y
-                    for(let i=movingFrom-1; i>=this.c1Length; i--){
-                        y += this.itemHeights[i];
+                    for(let i=movingFrom-1; i>=this._c1Length; i--){
+                        y += this._itemHeights[i];
                     }
 
                     let counter = 0;
                     while(y!==0){
-                        const targetItemHeight = this.itemHeights[counter];
+                        const targetItemHeight = this._itemHeights[counter];
                         if(y > targetItemHeight){
                             nextMovingTo++;
                             y -= targetItemHeight;
@@ -187,7 +194,7 @@ export default class App extends Component {
                 }
                 // if nextMovingTo exceeds column1's height, we set it to the
                 // last item in column1
-                if(nextMovingTo>=this.c1Length) nextMovingTo = this.c1Length;
+                if(nextMovingTo>=this._c1Length) nextMovingTo = this._c1Length;
             }
 
 
@@ -200,7 +207,7 @@ export default class App extends Component {
             while(y!==0){
                 // if the draggingItem is going down (decrement index)
                 if(y>0){
-                    const targetItemHeight = this.itemHeights[movingFrom+counter];
+                    const targetItemHeight = this._itemHeights[movingFrom+counter];
                     if(y > targetItemHeight){
                         y -= targetItemHeight;
                         nextMovingTo++;
@@ -211,7 +218,7 @@ export default class App extends Component {
 
                 // if the draggingItem is going up (decrement index)
                 }else{
-                    const targetItemHeight = this.itemHeights[movingFrom-counter];
+                    const targetItemHeight = this._itemHeights[movingFrom-counter];
                     if(Math.abs(y) > targetItemHeight){
                         y += targetItemHeight;
                         nextMovingTo--;
@@ -227,11 +234,11 @@ export default class App extends Component {
             if (initialColumnIs1) {
                 // if dragging item is in column1 and is exceeding the length of
                 // its column we set it as the last item
-                if(nextMovingTo >= this.c1Length) nextMovingTo = this.c1Length - 1;
+                if(nextMovingTo >= this._c1Length) nextMovingTo = this._c1Length - 1;
             // if dragging item is in column2 and has gone very up that
             // is gonna move to column1, we prevent it by setting as the first item in column2
-            } else if(nextMovingTo<this.c1Length){
-                nextMovingTo = this.c1Length;
+            } else if(nextMovingTo<this._c1Length){
+                nextMovingTo = this._c1Length;
             }
         }
 
@@ -245,20 +252,21 @@ export default class App extends Component {
     };
 
     _onDraggableRelease = ()=>{
-        let { items, movingFrom, movingTo, switchingTo } = this.state;
+        const { items, movingFrom, movingTo, switchingTo } = this.state;
+        let newItems = JSON.parse(JSON.stringify(items));
         // as user releases the dragging item, we move it to its new index(movingTo)
-        items.splice(movingTo, 0, items.splice(movingFrom, 1)[0]);
+        newItems.splice(movingTo, 0, newItems.splice(movingFrom, 1)[0]);
         // accordingly we should move its height to the correct index
-        this.itemHeights.splice(movingTo, 0, this.itemHeights.splice(movingFrom, 1)[0]);
+        this._itemHeights.splice(movingTo, 0, this._itemHeights.splice(movingFrom, 1)[0]);
         if(switchingTo){
             // column has been switched we should update the columnNumber of that item
-            items[movingTo].columnNumber = switchingTo;
-            // and c1Length
-            this.c1Length = switchingTo===2 ? this.c1Length-1 : this.c1Length+1;
+            newItems[movingTo].columnNumber = switchingTo;
+            // and _c1Length
+            this._c1Length = switchingTo===2 ? this._c1Length-1 : this._c1Length+1;
         }
 
         this.setState({
-            items,
+            items: newItems,
             movingFrom: null,
             movingTo: null,
             switchingTo: null,
@@ -267,7 +275,7 @@ export default class App extends Component {
 
     // get and set the height of items by their index,
     // they will have the same indexing with state.items
-    _onItemLayout = (h, i)=>this.itemHeights[i] = h+ITEM_MARGIN;
+    _onItemLayout = (h, i)=>this._itemHeights[i] = h+ITEM_MARGIN;
 
     _renderItems = columnNumber=>{
         const { items, movingFrom, movingTo, switchingTo, justSwitched} = this.state;
@@ -275,7 +283,7 @@ export default class App extends Component {
             if(item.columnNumber === columnNumber){
                 let moveYTo;
                 let isDragging = movingFrom===index;
-                let draggingItemHeight = this.itemHeights[movingFrom];
+                let draggingItemHeight = this._itemHeights[movingFrom];
 
                 if(movingTo>-1 && !isDragging){
                     // the items that are between dragging item initial index and its target index
@@ -288,7 +296,7 @@ export default class App extends Component {
                     // if a switch column has happened
                     if(switchingTo){
                         // cancel out those that are in the other column
-                        if(index>=this.c1Length) moveYTo = null;
+                        if(index>=this._c1Length) moveYTo = null;
                         // collapse the items that are in column2 and are below the dragged
                         // item to the first column
                         if(switchingTo===1 && index>movingFrom) moveYTo = -draggingItemHeight;
@@ -309,7 +317,9 @@ export default class App extends Component {
                         onMove={this._onDraggableMove}
                         dontAnimate={!movingFrom||justSwitched}
                         onItemLayout={({nativeEvent:{layout:{height}}})=>this._onItemLayout(height, index)}
-
+                        scrollViewYPosition={this._scrollViewYPosition}
+                        srollViewLayoutHeight={this._scrollViewLayoutHeight}
+                        scrollViewContentHeight={this._scrollViewContentHeight}
                     />
                 )
             }
@@ -320,8 +330,14 @@ export default class App extends Component {
     render() {
         return (
             <ScrollView
+                onLayout={({nativeEvent:{layout:{height, y}}})=>{
+                    this._scrollViewLayoutHeight = height;
+                    this._scrollViewYPosition = y;
+                }}
+                onContentSizeChange={(_,h)=>this._scrollViewContentHeight = h}
                 style={styles.container}
                 scrollEnabled={!this.state.movingFrom}
+                ref={component=>this._scrollViewRef = component}
             >
                 <View style={styles.columns}>
                     <View style={styles.column}>
